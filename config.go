@@ -30,6 +30,8 @@ type Node struct {
 
 type Config struct {
 	PoolMode        string         `json:"poolMode,omitempty" yaml:"poolMode,omitempty"`
+	SpeedPriority   bool           `json:"speedPriority" yaml:"speedPriority"`
+	UnifiedDelay    bool           `json:"unifiedDelay" yaml:"unifiedDelay"`
 	RelayGroups     []RelayGroup   `json:"relayGroups,omitempty" yaml:"relayGroups,omitempty"`
 	DeletedNodes    []string       `json:"deletedNodes,omitempty" yaml:"deletedNodes,omitempty"`
 	AutoRecover     bool           `json:"autoRecover" yaml:"autoRecover"`
@@ -62,7 +64,7 @@ type Config struct {
 }
 
 func defaults() Config {
-	return Config{Version: 3, PoolMode: "source", AutoRecover: true, Name: "我的固定出口", Nodes: []Node{}, AutoRefresh: true, RefreshMinutes: 360, ResumeOnLaunch: true, Targets: []string{"https://www.gstatic.com/generate_204", "https://cp.cloudflare.com/generate_204"}, IntervalSeconds: 45, TimeoutMS: 6000, Concurrency: 3, MinGainMS: 60, MinGainPercent: 15, MinDwellSeconds: 120, UIPort: 28180, ProxyPort: 27892, VerifyPort: 27893, ControllerPort: 28191}
+	return Config{Version: 3, PoolMode: "source", SpeedPriority: true, UnifiedDelay: true, AutoRecover: true, Name: "我的固定出口", Nodes: []Node{}, AutoRefresh: true, RefreshMinutes: 360, ResumeOnLaunch: true, Targets: []string{"https://www.gstatic.com/generate_204", "https://cp.cloudflare.com/generate_204"}, IntervalSeconds: 45, TimeoutMS: 6000, Concurrency: 3, MinGainMS: 60, MinGainPercent: 15, MinDwellSeconds: 120, UIPort: 28180, ProxyPort: 27892, VerifyPort: 27893, ControllerPort: 28191}
 }
 
 func cloneMap(m map[string]any) map[string]any {
@@ -218,7 +220,7 @@ func buildCoreConfig(c Config, secret string) map[string]any {
 	result := map[string]any{
 		"log-level": "warning", "ipv6": true, "mode": "rule", "allow-lan": false, "bind-address": "127.0.0.1",
 		"external-controller": fmt.Sprintf("127.0.0.1:%d", c.ControllerPort), "secret": secret,
-		"unified-delay": false, "tcp-concurrent": true, "profile": map[string]any{"store-selected": false, "store-fake-ip": false},
+		"unified-delay": c.UnifiedDelay, "tcp-concurrent": true, "profile": map[string]any{"store-selected": false, "store-fake-ip": false},
 		"proxies": proxies, "proxy-groups": []any{map[string]any{"name": "ROUTE", "type": "select", "proxies": names, "default-selected": "REJECT"}, map[string]any{"name": "VERIFY", "type": "select", "proxies": names, "default-selected": "REJECT"}},
 		"listeners": []any{map[string]any{"name": "applications", "type": "mixed", "listen": "127.0.0.1", "port": c.ProxyPort, "proxy": "ROUTE", "udp": false}, map[string]any{"name": "identity-check", "type": "mixed", "listen": "127.0.0.1", "port": c.VerifyPort, "proxy": "VERIFY", "udp": false}},
 		"rules":     []string{"MATCH,REJECT"},

@@ -76,3 +76,32 @@ func TestSingleTargetTwoSuccessesRequired(t *testing.T) {
 		t.Fatal("one lucky probe cannot trigger a switch")
 	}
 }
+
+func TestSpeedPriorityStillRequiresConfirmedGain(t *testing.T) {
+	c := defaults()
+	now := time.Now()
+	a, b := healthy("a", 800, now), healthy("b", 400, now)
+	a.GroupPriority, b.GroupPriority = 1, 100
+	rs := map[string]*Route{"a": a, "b": b}
+	c.SpeedPriority = false
+	if id, _ := choose(rs, "a", now.Add(-time.Hour), now, c); id != "a" {
+		t.Fatal("priority mode must honor group priority")
+	}
+	c.SpeedPriority = true
+	if id, _ := choose(rs, "a", now.Add(-time.Hour), now, c); id != "b" {
+		t.Fatal("speed mode should compare across groups")
+	}
+	b.ConsecutiveSuccesses = 1
+	if id, _ := choose(rs, "a", now.Add(-time.Hour), now, c); id != "a" {
+		t.Fatal("speed mode must still require confirmation")
+	}
+}
+
+func TestOldestCandidatesIncludeNeverCheckedAndRecovering(t *testing.T) {
+	now := time.Now()
+	rs := map[string]*Route{"new": {ID: "new"}, "old": {ID: "old", CheckedAt: now.Add(-time.Hour)}, "recent": {ID: "recent", CheckedAt: now}}
+	got := oldestCandidates([]string{"recent", "old", "new"}, rs, 2)
+	if len(got) != 2 || got[0] != "new" || got[1] != "old" {
+		t.Fatalf("unexpected exploration order: %v", got)
+	}
+}

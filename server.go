@@ -45,6 +45,7 @@ func (s *Server) handler() http.Handler {
 	mux.HandleFunc("/api/scan", s.scan)
 	mux.HandleFunc("/api/select", s.selectRoute)
 	mux.HandleFunc("/api/measure", s.measure)
+	mux.HandleFunc("/api/speed-test", s.speedTest)
 	mux.HandleFunc("/api/import", s.importConfig)
 	mux.HandleFunc("/api/settings", s.settings)
 	mux.HandleFunc("/api/shutdown", s.quit)
@@ -62,6 +63,7 @@ func (s *Server) handler() http.Handler {
 	mux.HandleFunc("/api/relays/import", s.relayImport)
 	mux.HandleFunc("/api/relays/save", s.relaySave)
 	mux.HandleFunc("/api/relays/delete", s.relayDelete)
+	mux.HandleFunc("/api/relays/batch", s.relayBatch)
 	mux.HandleFunc("/api/relays/detail", s.relayDetail)
 	mux.HandleFunc("/api/relays/test", s.relayTest)
 	mux.HandleFunc("/api/sources/save", s.sourceSave)
@@ -141,7 +143,8 @@ func (s *Server) page(w http.ResponseWriter, r *http.Request) {
 	}
 	b, _ := assets.ReadFile("web/dashboard.html")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = io.WriteString(w, strings.ReplaceAll(string(b), "{{TOKEN}}", s.token))
+	page := strings.ReplaceAll(string(b), "{{TOKEN}}", s.token)
+	_, _ = io.WriteString(w, strings.ReplaceAll(page, "{{VERSION}}", appVersion))
 }
 func (s *Server) asset(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -204,7 +207,7 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 		return a.ID < b.ID
 	})
 	c := e.config
-	view := map[string]any{"version": appVersion, "state": e.state, "name": c.Name, "current": e.current, "pinned": e.pinned, "proxyPort": c.ProxyPort, "scanning": e.scanning, "checked": e.checked, "total": e.total, "lastScan": e.lastScan, "routes": routes, "events": e.events, "timing": e.timing, "expectedIPConfigured": c.ExpectedIP != "", "identityVerified": e.current != "" && e.observedIP != "", "lastError": e.lastError, "lastSwitch": e.lastSwitch, "configPath": filepath.Join(e.root, "data", "config.json"), "settings": map[string]any{"targets": c.Targets, "intervalSeconds": c.IntervalSeconds, "timeoutMS": c.TimeoutMS, "concurrency": c.Concurrency, "minGainMS": c.MinGainMS, "minGainPercent": c.MinGainPercent, "minDwellSeconds": c.MinDwellSeconds}}
+	view := map[string]any{"version": appVersion, "state": e.state, "name": c.Name, "current": e.current, "pinned": e.pinned, "proxyPort": c.ProxyPort, "scanning": e.scanning, "checked": e.checked, "total": e.total, "lastScan": e.lastScan, "routes": routes, "events": e.events, "timing": e.timing, "expectedIPConfigured": c.ExpectedIP != "", "identityVerified": e.current != "" && e.observedIP != "", "lastError": e.lastError, "lastSwitch": e.lastSwitch, "configPath": filepath.Join(e.root, "data", "config.json"), "settings": map[string]any{"unifiedDelay": c.UnifiedDelay, "targets": c.Targets, "intervalSeconds": c.IntervalSeconds, "timeoutMS": c.TimeoutMS, "concurrency": c.Concurrency, "minGainMS": c.MinGainMS, "minGainPercent": c.MinGainPercent, "minDwellSeconds": c.MinDwellSeconds}}
 	respond(w, view)
 }
 func (s *Server) start(w http.ResponseWriter, r *http.Request) {
@@ -365,6 +368,7 @@ func (s *Server) settings(w http.ResponseWriter, r *http.Request) {
 	}
 	var v struct {
 		Targets         []string `json:"targets"`
+		UnifiedDelay    bool     `json:"unifiedDelay"`
 		IntervalSeconds int      `json:"intervalSeconds"`
 		TimeoutMS       int      `json:"timeoutMS"`
 		Concurrency     int      `json:"concurrency"`
@@ -387,6 +391,7 @@ func (s *Server) settings(w http.ResponseWriter, r *http.Request) {
 	}
 	c := e.config
 	c.Targets = v.Targets
+	c.UnifiedDelay = v.UnifiedDelay
 	c.IntervalSeconds = v.IntervalSeconds
 	c.TimeoutMS = v.TimeoutMS
 	c.Concurrency = v.Concurrency

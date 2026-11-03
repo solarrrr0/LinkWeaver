@@ -34,33 +34,34 @@ type Timing struct {
 	OK          bool      `json:"ok"`
 }
 type Engine struct {
-	mu         sync.Mutex
-	lifecycle  sync.Mutex
-	scanMu     sync.Mutex
-	verifyMu   sync.Mutex
-	root       string
-	scope      string
-	config     Config
-	routes     map[string]*Route
-	state      string
-	current    string
-	pinned     string
-	lastSwitch time.Time
-	events     []Event
-	timing     *Timing
-	observedIP string
-	secret     string
-	cancel     context.CancelFunc
-	runContext context.Context
-	cmd        *exec.Cmd
-	done       chan struct{}
-	scanning   bool
-	checked    int
-	total      int
-	lastScan   time.Time
-	automatic  bool
-	lastError  string
-	client     *http.Client
+	mu           sync.Mutex
+	lifecycle    sync.Mutex
+	scanMu       sync.Mutex
+	verifyMu     sync.Mutex
+	root         string
+	scope        string
+	config       Config
+	routes       map[string]*Route
+	state        string
+	current      string
+	pinned       string
+	lastSwitch   time.Time
+	events       []Event
+	timing       *Timing
+	observedIP   string
+	secret       string
+	cancel       context.CancelFunc
+	runContext   context.Context
+	cmd          *exec.Cmd
+	done         chan struct{}
+	scanning     bool
+	checked      int
+	total        int
+	lastScan     time.Time
+	automatic    bool
+	lastError    string
+	editingNodes bool
+	client       *http.Client
 }
 
 func newEngine(root string, c Config) *Engine {
@@ -377,14 +378,10 @@ func (e *Engine) scan(ctx context.Context, full bool, only []string) error {
 		}
 		return a.ID < b.ID
 	})
-	// A regular round rechecks the active route, best alternatives and a rotating set of unexplored routes.
+	// Reserve slots for the least recently checked candidates, including recovered failures.
 	if !full && len(ids) > 10 {
 		best := append([]string{}, ids[:6]...)
-		rest := ids[6:]
-		offset := int(now.Unix()/int64(c.IntervalSeconds)) % len(rest)
-		for i := 0; i < 4; i++ {
-			best = append(best, rest[(offset+i)%len(rest)])
-		}
+		best = append(best, oldestCandidates(ids[6:], e.routes, 4)...)
 		ids = best
 	}
 	e.scanning = true
@@ -543,6 +540,18 @@ func (e *Engine) scan(ctx context.Context, full bool, only []string) error {
 	return nil
 }
 
+func oldestCandidates(ids []string, routes map[string]*Route, limit int) []string {
+	rest := append([]string{}, ids...)
+	sort.Slice(rest, func(i, j int) bool {
+		a, b := routes[rest[i]], routes[rest[j]]
+		if a.CheckedAt.Equal(b.CheckedAt) {
+			return a.ID < b.ID
+		}
+		return a.CheckedAt.Before(b.CheckedAt)
+	})
+	return rest[:min(limit, len(rest))]
+}
+
 func (e *Engine) runCtx() (context.Context, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -605,6 +614,10 @@ func (e *Engine) trySelect(ctx context.Context, id, reason string, manual bool) 
 	e.verifyMu.Lock()
 	defer e.verifyMu.Unlock()
 	e.mu.Lock()
+	if e.editingNodes {
+		e.mu.Unlock()
+		return nil
+	}
 	if e.state != "running" || e.routes[id] == nil {
 		e.mu.Unlock()
 		return errors.New("线路不存在或核心已停止")

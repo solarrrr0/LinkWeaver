@@ -606,24 +606,8 @@ func (w *Workspace) saveNode(n Node) error {
 	return w.commit(c)
 }
 func (w *Workspace) deleteNode(id string) error {
-	w.op.Lock()
-	defer w.op.Unlock()
-	c := w.snapshot()
-	nodes := []Node{}
-	found := false
-	for _, n := range c.Nodes {
-		if n.ID == id {
-			found = true
-			c.DeletedNodes = append(c.DeletedNodes, proxyID(n.Proxy))
-			continue
-		}
-		nodes = append(nodes, n)
-	}
-	if !found {
-		return errors.New("中转节点不存在")
-	}
-	c.Nodes = nodes
-	return w.commit(c)
+	_, err := w.batchNodes(nodeBatchRequest{Action: "delete", IDs: []string{id}})
+	return err
 }
 
 func (w *Workspace) saveSource(s RelaySource) error {

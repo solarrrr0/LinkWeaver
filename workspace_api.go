@@ -123,7 +123,7 @@ func (s *Server) workspaceView(w http.ResponseWriter, r *http.Request) {
 	tray := s.workspace.tray
 	s.workspace.mu.Unlock()
 	trayRegistered := tray != nil && tray.registered.Load()
-	respond(w, map[string]any{"version": appVersion, "profiles": profiles, "nodes": nodes, "sources": sources, "events": events, "runningCount": running, "connectedCount": connected, "trayRegistered": trayRegistered, "settings": map[string]any{"targets": c.Targets, "intervalSeconds": c.IntervalSeconds, "timeoutMS": c.TimeoutMS, "concurrency": c.Concurrency, "minGainMS": c.MinGainMS, "minGainPercent": c.MinGainPercent, "minDwellSeconds": c.MinDwellSeconds, "autoRefresh": c.AutoRefresh, "refreshMinutes": c.RefreshMinutes, "openOnLaunch": c.OpenOnLaunch, "resumeOnLaunch": c.ResumeOnLaunch, "runAtLogin": c.RunAtLogin, "autoRecover": c.AutoRecover}, "uiPort": c.UIPort, "dataDir": filepath.Join(s.workspace.root, "data"), "poolMode": c.PoolMode, "relayGroups": c.RelayGroups, "operations": s.workspace.jobViews()})
+	respond(w, map[string]any{"version": appVersion, "profiles": profiles, "nodes": nodes, "sources": sources, "events": events, "runningCount": running, "connectedCount": connected, "trayRegistered": trayRegistered, "settings": map[string]any{"speedPriority": c.SpeedPriority, "unifiedDelay": c.UnifiedDelay, "targets": c.Targets, "intervalSeconds": c.IntervalSeconds, "timeoutMS": c.TimeoutMS, "concurrency": c.Concurrency, "minGainMS": c.MinGainMS, "minGainPercent": c.MinGainPercent, "minDwellSeconds": c.MinDwellSeconds, "autoRefresh": c.AutoRefresh, "refreshMinutes": c.RefreshMinutes, "openOnLaunch": c.OpenOnLaunch, "resumeOnLaunch": c.ResumeOnLaunch, "runAtLogin": c.RunAtLogin, "autoRecover": c.AutoRecover}, "uiPort": c.UIPort, "dataDir": filepath.Join(s.workspace.root, "data"), "poolMode": c.PoolMode, "relayGroups": c.RelayGroups, "operations": s.workspace.jobViews()})
 }
 
 func (s *Server) profileSave(w http.ResponseWriter, r *http.Request) {
@@ -360,6 +360,8 @@ func (s *Server) workspaceSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	var v struct {
 		Targets         []string `json:"targets"`
+		SpeedPriority   bool     `json:"speedPriority"`
+		UnifiedDelay    bool     `json:"unifiedDelay"`
 		IntervalSeconds int      `json:"intervalSeconds"`
 		TimeoutMS       int      `json:"timeoutMS"`
 		Concurrency     int      `json:"concurrency"`
@@ -383,6 +385,8 @@ func (s *Server) workspaceSettings(w http.ResponseWriter, r *http.Request) {
 	c := m.snapshot()
 	oldLogin := c.RunAtLogin
 	c.Targets = v.Targets
+	c.SpeedPriority = v.SpeedPriority
+	c.UnifiedDelay = v.UnifiedDelay
 	c.IntervalSeconds = v.IntervalSeconds
 	c.TimeoutMS = v.TimeoutMS
 	c.Concurrency = v.Concurrency

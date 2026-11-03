@@ -7,7 +7,7 @@ Upstream: https://github.com/MetaCubeX/mihomo/tree/v1.19.29
 SHA256 bin/mihomo.exe:
 82cd796a23492f43a71c1ec27e4e5e0b3d58932014da5a36e79ed9b11fee8162
 
-Go runtime and standard library go1.26.5 (BSD-style)
+Go runtime and standard library go1.27.3 (BSD-style)
 Go-LICENSE.txt is included.
 
 go.yaml.in/yaml/v3 v3.0.4 (MIT / Apache-2.0)

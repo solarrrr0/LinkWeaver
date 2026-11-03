@@ -90,10 +90,10 @@ func ranked(routes map[string]*Route, now time.Time, c Config) []*Route {
 		}
 	}
 	sort.Slice(x, func(i, j int) bool {
-		if x[i].GroupPriority != x[j].GroupPriority {
+		if !c.SpeedPriority && x[i].GroupPriority != x[j].GroupPriority {
 			return x[i].GroupPriority < x[j].GroupPriority
 		}
-		if x[i].Priority != x[j].Priority {
+		if !c.SpeedPriority && x[i].Priority != x[j].Priority {
 			return x[i].Priority < x[j].Priority
 		}
 		if x[i].Score == x[j].Score {
@@ -130,7 +130,7 @@ func choose(routes map[string]*Route, current string, lastSwitch, now time.Time,
 		return current, "候选需要连续两次成功确认"
 	}
 	gain := cur.Score - b.Score
-	if b.GroupPriority < cur.GroupPriority || b.GroupPriority == cur.GroupPriority && b.Priority < cur.Priority {
+	if !c.SpeedPriority && (b.GroupPriority < cur.GroupPriority || b.GroupPriority == cur.GroupPriority && b.Priority < cur.Priority) {
 		return b.ID, "更高优先级中转已恢复并通过连续验证"
 	}
 	if gain < float64(c.MinGainMS) || gain < cur.Score*float64(c.MinGainPercent)/100 {

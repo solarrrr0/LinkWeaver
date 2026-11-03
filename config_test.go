@@ -38,8 +38,8 @@ func TestGeneratedConfigPreservesProtocolAndFailsClosed(t *testing.T) {
 			}
 		}
 	}
-	if cfg["unified-delay"] != false {
-		t.Fatal("must include handshakes")
+	if cfg["unified-delay"] != c.UnifiedDelay {
+		t.Fatal("unified delay setting not applied")
 	}
 	if len(cfg["listeners"].([]any)) != 2 {
 		t.Fatal("listener count must not grow with candidates")

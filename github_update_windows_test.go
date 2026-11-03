@@ -11,10 +11,10 @@ func TestGitHubReleaseSelection(t *testing.T) {
 			t.Fatalf("version comparison %s %s", x.a, x.b)
 		}
 	}
-	name := "LinkWeaver-Update-0.3.4-Windows-x64.zip"
-	r := githubRelease{Tag: "v0.3.4", Assets: []githubAsset{{Name: name, Size: 100, URL: githubProjectURL + "/releases/download/v0.3.4/" + name}, {Name: name + ".sha256", URL: githubProjectURL + "/releases/download/v0.3.4/" + name + ".sha256"}}}
+	name := "LinkWeaver-Update-99.0.0-Windows-x64.zip"
+	r := githubRelease{Tag: "v99.0.0", Assets: []githubAsset{{Name: name, Size: 100, URL: githubProjectURL + "/releases/download/v99.0.0/" + name}, {Name: name + ".sha256", URL: githubProjectURL + "/releases/download/v99.0.0/" + name + ".sha256"}}}
 	s, err := selectRelease(r)
-	if err != nil || !s.Available || s.Latest != "0.3.4" {
+	if err != nil || !s.Available || s.Latest != "99.0.0" {
 		t.Fatal("valid release not selected", err)
 	}
 	r.Assets[0].URL = "https://example.com/payload.zip"
