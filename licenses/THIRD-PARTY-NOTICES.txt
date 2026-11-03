@@ -1,0 +1,20 @@
+LinkWeaver 0.1.0 third-party components
+
+Mihomo Meta v1.19.29 (GPL-3.0)
+Reused as a separate executable from the existing local installation.
+Mihomo-LICENSE.txt and corresponding mihomo-source-v1.19.29.zip are included.
+Upstream: https://github.com/MetaCubeX/mihomo/tree/v1.19.29
+SHA256 bin/mihomo.exe:
+82cd796a23492f43a71c1ec27e4e5e0b3d58932014da5a36e79ed9b11fee8162
+
+Go runtime and standard library go1.26.5 (BSD-style)
+Go-LICENSE.txt is included.
+
+go.yaml.in/yaml/v3 v3.0.4 (MIT / Apache-2.0)
+The upstream LICENSE and NOTICE are included as yaml-v3-LICENSE and yaml-v3-NOTICE.
+
+ChainPilot business source code is not included or linked into LinkWeaver.
+The personal migration tool reads the user's existing local configuration only.
+
+github.com/Microsoft/go-winio v0.6.2 (MIT): go-winio-LICENSE.txt
+golang.org/x/sys v0.10.0 (BSD-3-Clause): x-sys-LICENSE.txt

@@ -1,0 +1,13 @@
+.tools/
+data/
+runtime/
+dist/
+bin/
+*.exe
+*.log
+*.zip
+!licenses/mihomo-source-v1.19.29.zip
+reports/
+unins*.dat
+unins*.msg
+*.tmp
