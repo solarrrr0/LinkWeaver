@@ -65,10 +65,11 @@ func (s *Server) workspaceView(w http.ResponseWriter, r *http.Request) {
 		if e.state == "running" {
 			running++
 		}
-		if e.current != "" {
+		degraded := e.current != "" && by[e.current].ConsecutiveFailures >= 2
+		if e.current != "" && !degraded {
 			connected++
 		}
-		v := map[string]any{"id": p.ID, "name": p.Name, "protocol": p.FixedExit["type"], "proxyPort": p.ProxyPort, "state": e.state, "current": cur, "latencyMS": latency, "pinned": e.pinned, "identityVerified": e.current != "" && e.observedIP != "", "expectedIPConfigured": p.ExpectedIP != "", "scanning": e.scanning, "checked": e.checked, "total": e.total, "lastScan": e.lastScan, "lastError": e.lastError, "eligibleCount": len(e.routes), "routes": rs, "timing": e.timing, "allowedSources": p.AllowedSources, "restrictNodes": p.RestrictNodes, "allowedNodes": p.AllowedNodes, "selectionMode": p.SelectionMode, "manualRelayID": p.ManualRelayID}
+		v := map[string]any{"id": p.ID, "name": p.Name, "protocol": p.FixedExit["type"], "proxyPort": p.ProxyPort, "state": e.state, "current": cur, "latencyMS": latency, "pinned": e.pinned, "identityVerified": e.current != "" && e.observedIP != "", "routeDegraded": degraded, "expectedIPConfigured": p.ExpectedIP != "", "scanning": e.scanning, "checked": e.checked, "total": e.total, "lastScan": e.lastScan, "lastError": e.lastError, "eligibleCount": len(e.routes), "routes": rs, "timing": e.timing, "allowedSources": p.AllowedSources, "restrictNodes": p.RestrictNodes, "allowedNodes": p.AllowedNodes, "selectionMode": p.SelectionMode, "manualRelayID": p.ManualRelayID}
 		profiles = append(profiles, v)
 		for _, ev := range e.events {
 			events = append(events, map[string]any{"at": ev.At, "text": ev.Text, "profile": p.Name})

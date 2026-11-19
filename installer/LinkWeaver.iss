@@ -1,7 +1,7 @@
 #ifndef BuildRoot
   #define BuildRoot "..\.tools\setup-payload"
 #endif
-#define AppVersion "0.3.6"
+#define AppVersion "0.3.7"
 
 [Setup]
 AppId={{94CD94E5-53DB-4320-BAB7-5FAC0B9BC8D4}

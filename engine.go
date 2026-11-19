@@ -296,7 +296,15 @@ func (e *Engine) loop(ctx context.Context) {
 	_ = e.Scan(ctx, true)
 	for {
 		c := e.cfg()
-		timer := time.NewTimer(time.Duration(c.IntervalSeconds) * time.Second)
+		e.mu.Lock()
+		current := e.routes[e.current]
+		recovering := e.automatic && e.pinned == "" && (e.current == "" || current != nil && current.ConsecutiveFailures >= 2)
+		e.mu.Unlock()
+		interval := c.IntervalSeconds
+		if recovering {
+			interval = min(interval, 10)
+		}
+		timer := time.NewTimer(time.Duration(interval) * time.Second)
 		select {
 		case <-ctx.Done():
 			timer.Stop()
@@ -451,7 +459,6 @@ func (e *Engine) scan(ctx context.Context, full bool, only []string) error {
 	if active != "" && !found {
 		top = append(top, active)
 	}
-	firstScan := e.lastScan.IsZero()
 	e.mu.Unlock()
 	for _, id := range top {
 		s := e.probe(ctx, id, c.Targets[0])
@@ -481,9 +488,6 @@ func (e *Engine) scan(ctx context.Context, full bool, only []string) error {
 	}
 	e.mu.Lock()
 	switchTime := e.lastSwitch
-	if firstScan {
-		switchTime = time.Time{}
-	}
 	id, reason := choose(e.routes, e.current, switchTime, time.Now(), c)
 	automatic := e.automatic
 	pinned := e.pinned
@@ -504,6 +508,36 @@ func (e *Engine) scan(ctx context.Context, full bool, only []string) error {
 		return nil
 	}
 
+	if failed {
+		e.mu.Lock()
+		candidates := ranked(e.routes, time.Now(), c)
+		ids := make([]string, 0, min(3, len(candidates)))
+		for _, candidate := range candidates {
+			if candidate.ID != e.current && len(ids) < 3 {
+				ids = append(ids, candidate.ID)
+			}
+		}
+		e.mu.Unlock()
+		switched := tryFallbacks(ctx, ids, func(id string) bool {
+			err := e.trySelect(ctx, id, "当前链路连续两次失败，切换备用", false)
+			e.mu.Lock()
+			defer e.mu.Unlock()
+			if err != nil {
+				if r := e.routes[id]; r != nil {
+					r.Record(Sample{At: time.Now(), OK: false, Target: "出口身份验证"})
+				}
+				e.eventLocked("备用线路验证未通过，尝试其他候选")
+				return false
+			}
+			return e.current == id
+		})
+		if !switched && ctx.Err() == nil {
+			e.event("暂无通过验证的备用线路，暂时保留上次已验证线路并继续重试")
+		}
+		_ = e.persistMetrics()
+		return nil
+	}
+
 	if id != "" {
 		if err := e.trySelect(ctx, id, reason, false); err != nil {
 			e.event("候选线路出口验证未通过，保持原有策略")
@@ -513,21 +547,7 @@ func (e *Engine) scan(ctx context.Context, full bool, only []string) error {
 				r.Record(Sample{At: time.Now(), OK: false, Target: "出口身份验证"})
 			}
 			e.mu.Unlock()
-			if failed {
-				_ = e.selectGroup(ctx, "ROUTE", "")
-				e.mu.Lock()
-				e.current = ""
-				e.observedIP = ""
-				e.mu.Unlock()
-			}
 		}
-	} else if failed {
-		_ = e.selectGroup(ctx, "ROUTE", "")
-		e.mu.Lock()
-		e.current = ""
-		e.observedIP = ""
-		e.mu.Unlock()
-		e.event("没有已验证的备用链路，已阻断新连接")
 	} else {
 		e.mu.Lock()
 		empty := e.current == ""
@@ -538,6 +558,18 @@ func (e *Engine) scan(ctx context.Context, full bool, only []string) error {
 	}
 	_ = e.persistMetrics()
 	return nil
+}
+
+func tryFallbacks(ctx context.Context, ids []string, try func(string) bool) bool {
+	for _, id := range ids {
+		if ctx.Err() != nil {
+			return false
+		}
+		if try(id) {
+			return true
+		}
+	}
+	return false
 }
 
 func oldestCandidates(ids []string, routes map[string]*Route, limit int) []string {

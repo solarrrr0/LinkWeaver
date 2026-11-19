@@ -1,4 +1,4 @@
-# 链跃 LinkWeaver 0.3.6
+# 链跃 LinkWeaver 0.3.7
 
 项目与发布下载：<https://github.com/solarrrr0/LinkWeaver>
 
@@ -6,7 +6,7 @@ Windows 本地代理链路管理器。采用独立 Go 管理程序和 Mihomo 核
 
 ## 安装
 
-运行 `LinkWeaver-Setup-0.3.6-Windows-x64.exe`，选择安装目录，按需勾选“登录 Windows 后自动启动到托盘”和“创建桌面快捷方式”。有 D 盘时默认建议 `D:\LinkWeaver`；也可自行选择可写目录。安装后主程序为安装目录中的 `LinkWeaver.exe`，桌面快捷方式会启动后台并打开网页管理页。支持 Windows 10/11 x64，不需要另外安装 Go、Python、Node 或原版 ChainPilot。
+运行 `LinkWeaver-Setup-0.3.7-Windows-x64.exe`，选择安装目录，按需勾选“登录 Windows 后自动启动到托盘”和“创建桌面快捷方式”。有 D 盘时默认建议 `D:\LinkWeaver`；也可自行选择可写目录。安装后主程序为安装目录中的 `LinkWeaver.exe`，桌面快捷方式会启动后台并打开网页管理页。支持 Windows 10/11 x64，不需要另外安装 Go、Python、Node 或原版 ChainPilot。
 
 安装包不包含个人订阅、节点、密码和浏览器设置。新电脑需要自行配置节点/出口，或使用管理页导入自己导出的配置备份。覆盖安装保留现有数据；卸载移除程序、快捷方式和自启入口，并保留 `data` 中的个人配置。
 

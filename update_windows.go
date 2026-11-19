@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-const appVersion = "0.3.6"
+const appVersion = "0.3.7"
 
 type releaseManifest struct {
 	Product string            `json:"product"`

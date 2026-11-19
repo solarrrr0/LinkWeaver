@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -10,6 +11,30 @@ func healthy(id string, ms float64, now time.Time) *Route {
 	r.Record(Sample{At: now.Add(-time.Second), MS: ms, OK: true})
 	r.Record(Sample{At: now, MS: ms, OK: true})
 	return r
+}
+
+func TestFallbackTriesNextCandidateAndHonorsCancellation(t *testing.T) {
+	var attempted []string
+	ok := tryFallbacks(context.Background(), []string{"first", "second", "third"}, func(id string) bool {
+		attempted = append(attempted, id)
+		return id == "second"
+	})
+	if !ok || len(attempted) != 2 || attempted[0] != "first" || attempted[1] != "second" {
+		t.Fatalf("unexpected fallback sequence: %v", attempted)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if tryFallbacks(ctx, []string{"candidate"}, func(string) bool { t.Fatal("attempted after cancellation"); return true }) {
+		t.Fatal("cancelled fallback succeeded")
+	}
+}
+
+func TestFallbackReportsFailureAfterAllCandidatesFail(t *testing.T) {
+	attempts := 0
+	ok := tryFallbacks(context.Background(), []string{"first", "second"}, func(string) bool { attempts++; return false })
+	if ok || attempts != 2 {
+		t.Fatal("all fallback candidates must be attempted")
+	}
 }
 func TestSelectionHysteresisAndEmergency(t *testing.T) {
 	c := defaults()
